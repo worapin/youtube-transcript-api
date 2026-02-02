@@ -2,8 +2,12 @@ from flask import Flask, jsonify, request
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api.proxies import WebshareProxyConfig
 import os
+from functools import wraps
 
 app = Flask(__name__)
+
+# ตั้งค่า API key จาก environment variable
+API_KEY = os.getenv('API_KEY', 'your-secret-api-key-here')
 
 # ตั้งค่า YouTube API ให้ใช้ Webshare proxy
 proxy_config = WebshareProxyConfig(
@@ -14,11 +18,44 @@ proxy_config = WebshareProxyConfig(
 # สร้าง YouTubeTranscriptApi instance ด้วย proxy config
 ytt_api = YouTubeTranscriptApi(proxy_config=proxy_config)
 
+# Decorator สำหรับตรวจสอบ API key
+def require_api_key(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # ตรวจสอบ API key จาก header
+        api_key = request.headers.get('X-API-Key')
+        
+        # ถ้าไม่มี API key ใน header ให้ลองดูจาก query parameter
+        if not api_key:
+            api_key = request.args.get('api_key')
+        
+        # ตรวจสอบว่า API key ถูกต้องหรือไม่
+        if not api_key or api_key != API_KEY:
+            return jsonify({
+                'error': 'Unauthorized',
+                'message': 'Valid API key required. Please provide API key in X-API-Key header or api_key query parameter.'
+            }), 401
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.route('/')
 def home():
-    return jsonify({'message': 'YouTube Transcript API is running!'})
+    return jsonify({
+        'message': 'YouTube Transcript API is running!',
+        'version': '1.0.0',
+        'endpoints': {
+            '/transcript/<video_id>': 'Get transcript for a YouTube video (requires API key)'
+        },
+        'authentication': {
+            'method': 'API Key',
+            'header': 'X-API-Key: your-api-key',
+            'query_param': '?api_key=your-api-key'
+        }
+    })
 
 @app.route('/transcript/<video_id>')
+@require_api_key
 def get_transcript(video_id):
     try:
         # ใช้ ytt_api.fetch() แทน YouTubeTranscriptApi.get_transcript()
