@@ -11,8 +11,7 @@ app = Flask(__name__)
 # ตั้งค่า Rate Limiter - จำกัด 10 requests ต่อนาที
 limiter = Limiter(    get_remote_address,
     app=app,
-    default_limits=["100 per day", "20 per hour"],
-    storage_uri="memory://",
+    default_limits=["10000 per day", "1000 per hour"],    storage_uri="memory://",
 )
 
 # ตั้งค่า API key จาก environment variable
@@ -63,12 +62,10 @@ def home():
             'query_param': '?api_key=your-api-key'
         },
         'rate_limits': {
-            'default': '100 requests per day, 20 per hour',
-            'transcript_endpoint': '10 requests per minute'
+            'default': '10000 requests per day, 1000 per hour',            'transcript_endpoint': '10 requests per minute'
         },
         'security': {
-            'api_key_location': 'Server-side environment variable (secure)',
-            'rate_limiting': 'Enabled to prevent abuse'
+            'default': '10000 requests per day, 1000 per hour',            'rate_limiting': 'Enabled to prevent abuse'
         }
     })
 
