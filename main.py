@@ -11,6 +11,9 @@ proxy_config = WebshareProxyConfig(
     proxy_password=os.getenv('WEBSHARE_PASSWORD'),
 )
 
+# สร้าง YouTubeTranscriptApi instance ด้วย proxy config
+ytt_api = YouTubeTranscriptApi(proxy_config=proxy_config)
+
 @app.route('/')
 def home():
     return jsonify({'message': 'YouTube Transcript API is running!'})
@@ -18,10 +21,11 @@ def home():
 @app.route('/transcript/<video_id>')
 def get_transcript(video_id):
     try:
-        transcript = YouTubeTranscriptApi.get_transcript(video_id, proxies=proxy_config.get_proxy_dict())
+        # ใช้ ytt_api.fetch() แทน YouTubeTranscriptApi.get_transcript()
+        transcript = ytt_api.fetch(video_id)
         return jsonify({
             'video_id': video_id,
-            'transcript': transcript
+            'transcript': [{'text': entry.text, 'start': entry.start, 'duration': entry.duration} for entry in transcript]
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 400
