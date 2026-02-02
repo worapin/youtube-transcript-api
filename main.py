@@ -6,11 +6,9 @@ import os
 app = Flask(__name__)
 
 # ตั้งค่า YouTube API ให้ใช้ Webshare proxy
-ytt_api = YouTubeTranscriptApi(
-    proxy_config=WebshareProxyConfig(
-        proxy_username=os.getenv('WEBSHARE_USERNAME'),
-        proxy_password=os.getenv('WEBSHARE_PASSWORD'),
-    )
+proxy_config = WebshareProxyConfig(
+    proxy_username=os.getenv('WEBSHARE_USERNAME'),
+    proxy_password=os.getenv('WEBSHARE_PASSWORD'),
 )
 
 @app.route('/')
@@ -20,16 +18,14 @@ def home():
 @app.route('/transcript/<video_id>')
 def get_transcript(video_id):
     try:
-        transcript = ytt_api.fetch(video_id)
+        transcript = YouTubeTranscriptApi.get_transcript(video_id, proxies=proxy_config.get_proxy_dict())
         return jsonify({
-            'success': True,
-            'data': transcript.to_raw_data()
+            'video_id': video_id,
+            'transcript': transcript
         })
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 400
+        return jsonify({'error': str(e)}), 400
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 8080)))
+    port = int(os.getenv('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
